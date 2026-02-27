@@ -4,8 +4,15 @@ blueprint:
     Close the garage door if it's been left open — either after a period of no
     occupancy or at a specific time (e.g., midnight safety close). Sends a mobile
     notification before or after closing. Respects a "keep open" helper toggle.
+
+    Designed as a companion to the Garage Card
+    (https://github.com/KadenThomp36/garage-card). The card shows your garage
+    door state in real time — this blueprint ensures it doesn't stay open
+    indefinitely. Use the same keep_open input_boolean the card toggles to
+    override auto-close directly from your dashboard.
   domain: automation
   author: KadenThomp36
+  source_url: https://github.com/KadenThomp36/garage-card/blob/main/blueprints/auto_close_left_open.yaml
   homeassistant:
     min_version: "2024.6.0"
   input:

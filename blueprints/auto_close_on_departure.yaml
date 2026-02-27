@@ -4,8 +4,15 @@ blueprint:
     Automatically close the garage door when a car leaves or when nobody is home.
     Optionally sends a mobile notification with the reason. Respects a "keep open"
     helper toggle so you can override the auto-close when needed.
+
+    Designed as a companion to the Garage Card
+    (https://github.com/KadenThomp36/garage-card). The card visualizes your
+    garage door and car presence — this blueprint handles the auto-close logic.
+    Point both at the same door and car presence entities, and use the same
+    keep_open input_boolean the card toggles to prevent auto-close from the dashboard.
   domain: automation
   author: KadenThomp36
+  source_url: https://github.com/KadenThomp36/garage-card/blob/main/blueprints/auto_close_on_departure.yaml
   homeassistant:
     min_version: "2024.6.0"
   input:
