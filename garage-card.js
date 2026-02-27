@@ -769,14 +769,11 @@ class GarageCardEditor extends LitElement {
     const labels = {
       name: 'Card Name',
       door_entity: 'Garage Door Entity',
-      car1_name: 'Car 1 Name',
       car1_presence_entity: 'Car 1 Presence Sensor',
-      car2_name: 'Car 2 Name',
       car2_presence_entity: 'Car 2 Presence Sensor',
       light_entity: 'Garage Light Entity (optional)',
       countdown_entity: 'Auto-Close Countdown Sensor (optional)',
-      keep_open_entity: 'Keep Door Open Toggle (optional)',
-      assets_path: 'Assets Path'
+      keep_open_entity: 'Keep Door Open Toggle (optional)'
     };
     return labels[schema.name] || schema.name;
   }
@@ -785,14 +782,11 @@ class GarageCardEditor extends LitElement {
     return [
       { name: 'name', selector: { text: {} } },
       { name: 'door_entity', selector: { entity: { domain: 'cover' } } },
-      { name: 'car1_name', selector: { text: {} } },
       { name: 'car1_presence_entity', selector: { entity: { domain: ['binary_sensor', 'input_boolean'] } } },
-      { name: 'car2_name', selector: { text: {} } },
       { name: 'car2_presence_entity', selector: { entity: { domain: ['binary_sensor', 'input_boolean'] } } },
       { name: 'light_entity', selector: { entity: { domain: 'light' } } },
       { name: 'countdown_entity', selector: { entity: { domain: 'sensor' } } },
-      { name: 'keep_open_entity', selector: { entity: { domain: 'input_boolean' } } },
-      { name: 'assets_path', selector: { text: {} } }
+      { name: 'keep_open_entity', selector: { entity: { domain: 'input_boolean' } } }
     ];
   }
 
