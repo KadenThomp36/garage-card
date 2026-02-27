@@ -4,14 +4,9 @@
  */
 
 const GARAGE_DEFAULTS = {
-  door_entity: 'cover.ratgdo32disco_7b7cd8_door',
-  car1_name: "Kaden's Honda",
-  car1_presence_entity: 'binary_sensor.kade_car_present',
-  car2_name: "Jackie's Mazda",
-  car2_presence_entity: 'binary_sensor.jackie_car_present',
-  light_entity: 'light.ratgdo32disco_7b7cd8_light',
-  countdown_entity: 'sensor.garage_door_auto_close_countdown',
-  keep_open_entity: 'input_boolean.keep_garage_door_open',
+  door_entity: '',
+  light_entity: '',
+  keep_open_entity: '',
   assets_path: '/local/garage-card/assets'
 };
 
@@ -37,14 +32,12 @@ class GarageCard extends HTMLElement {
   }
 
   connectedCallback() {
-    // Start interval for updating countdown and durations
     this._updateInterval = setInterval(() => {
       this._updateTimers();
     }, 1000);
   }
 
   disconnectedCallback() {
-    // Clean up interval when card is removed
     if (this._updateInterval) {
       clearInterval(this._updateInterval);
       this._updateInterval = null;
@@ -76,19 +69,29 @@ class GarageCard extends HTMLElement {
     return 4;
   }
 
+  _getCars() {
+    const cars = [];
+    for (let i = 1; i <= 3; i++) {
+      const entity = this._config[`car${i}_presence_entity`];
+      if (entity) {
+        cars.push({
+          index: i,
+          presenceEntity: entity,
+          image: `car-${i}.png`
+        });
+      }
+    }
+    return cars;
+  }
+
+  _isCarPresent(entityId) {
+    const entity = this._hass?.states[entityId];
+    return entity?.state === 'on';
+  }
+
   _getDoorState() {
     const state = this._hass?.states[this._config.door_entity];
     return state?.state ?? 'unknown';
-  }
-
-  _isCar1Present() {
-    const entity = this._hass?.states[this._config.car1_presence_entity];
-    return entity?.state === 'on';
-  }
-
-  _isCar2Present() {
-    const entity = this._hass?.states[this._config.car2_presence_entity];
-    return entity?.state === 'on';
   }
 
   _getCarLastChanged(entityId) {
@@ -118,12 +121,6 @@ class GarageCard extends HTMLElement {
     if (!this._config.light_entity) return false;
     const state = this._hass?.states[this._config.light_entity];
     return state?.state === 'on';
-  }
-
-  _getCountdownState() {
-    if (!this._config.countdown_entity) return null;
-    const state = this._hass?.states[this._config.countdown_entity];
-    return state?.state ?? null;
   }
 
   _isKeepOpenEnabled() {
@@ -156,6 +153,7 @@ class GarageCard extends HTMLElement {
     if (!this._hass || !this._config) return;
 
     const assetsPath = this._config.assets_path;
+    const cars = this._getCars();
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -186,7 +184,6 @@ class GarageCard extends HTMLElement {
           font-size: 1.3em;
           font-weight: 600;
         }
-
 
         .garage-scene {
           position: relative;
@@ -421,35 +418,6 @@ class GarageCard extends HTMLElement {
           font-weight: 500;
         }
 
-        .countdown-badge {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border-radius: 20px;
-          background: var(--secondary-background-color);
-          font-size: 0.85em;
-          height: 36px;
-          box-sizing: border-box;
-        }
-
-        .countdown-badge.active {
-          background: rgba(255, 159, 10, 0.2);
-        }
-
-        .countdown-badge .countdown-value {
-          font-weight: 600;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .countdown-badge.active .countdown-value {
-          color: var(--warning-color, #FF9F0A);
-        }
-
-        .countdown-badge ha-icon {
-          --mdc-icon-size: 16px;
-        }
-
         .keep-open-toggle {
           display: flex;
           align-items: center;
@@ -523,12 +491,11 @@ class GarageCard extends HTMLElement {
             <div class="layer garage-base">
               <img src="${assetsPath}/garage-base.png" alt="Garage">
             </div>
-            <div class="layer car" id="car-kade">
-              <img src="${assetsPath}/car-kade.png" alt="${this._config.car1_name}">
-            </div>
-            <div class="layer car" id="car-jackie">
-              <img src="${assetsPath}/car-jackie.png" alt="${this._config.car2_name}">
-            </div>
+            ${cars.map(car => `
+              <div class="layer car" id="car-${car.index}">
+                <img src="${assetsPath}/${car.image}" alt="Car ${car.index}">
+              </div>
+            `).join('')}
             <div class="layer garage-door" id="garage-door">
               <img src="${assetsPath}/garage-door-closed.png" alt="Door">
             </div>
@@ -546,12 +513,6 @@ class GarageCard extends HTMLElement {
                 <span class="text" id="door-text">Unknown</span>
                 <ha-icon icon="mdi:garage" id="door-icon"></ha-icon>
               </div>
-              ${this._config.countdown_entity ? `
-                <div class="countdown-badge" id="countdown-badge">
-                  <ha-icon icon="mdi:timer-outline"></ha-icon>
-                  <span class="countdown-value" id="countdown-value">--</span>
-                </div>
-              ` : ''}
               ${this._config.keep_open_entity ? `
                 <div class="keep-open-toggle" id="keep-open-toggle">
                   <ha-icon icon="mdi:lock-open-variant-outline"></ha-icon>
@@ -560,28 +521,25 @@ class GarageCard extends HTMLElement {
                 </div>
               ` : ''}
             </div>
-            <div class="car-status">
-              <div class="car-badge">
-                <div class="badge-row">
-                  <span class="dot" id="car1-dot"></span>
-                  <span class="status" id="car1-status">Away</span>
-                </div>
-                <span class="time-info" id="car1-time"></span>
+            ${cars.length > 0 ? `
+              <div class="car-status">
+                ${cars.map(car => `
+                  <div class="car-badge">
+                    <div class="badge-row">
+                      <span class="dot" id="car${car.index}-dot"></span>
+                      <span class="status" id="car${car.index}-status">Away</span>
+                    </div>
+                    <span class="time-info" id="car${car.index}-time"></span>
+                  </div>
+                `).join('')}
               </div>
-              <div class="car-badge">
-                <div class="badge-row">
-                  <span class="dot" id="car2-dot"></span>
-                  <span class="status" id="car2-status">Away</span>
-                </div>
-                <span class="time-info" id="car2-time"></span>
-              </div>
-            </div>
+            ` : ''}
           </div>
         </div>
       </ha-card>
     `;
 
-    // Attach event listeners once
+    // Attach event listeners
     this.shadowRoot.getElementById('door-touch-target').addEventListener('click', () => this._toggleDoor());
     this.shadowRoot.getElementById('door-toggle').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -609,8 +567,6 @@ class GarageCard extends HTMLElement {
     if (!this._hass || !this._config || !this._rendered) return;
 
     const doorState = this._getDoorState();
-    const car1Present = this._isCar1Present();
-    const car2Present = this._isCar2Present();
     const lightOn = this._isLightOn();
 
     const isDoorOpen = doorState === 'open' || doorState === 'opening';
@@ -642,38 +598,26 @@ class GarageCard extends HTMLElement {
       doorIcon.setAttribute('icon', isDoorOpen ? 'mdi:garage-open' : 'mdi:garage');
     }
 
-    // Update car 1
-    const car1El = this.shadowRoot.getElementById('car-kade');
-    const car1Dot = this.shadowRoot.getElementById('car1-dot');
-    const car1Status = this.shadowRoot.getElementById('car1-status');
-    const car1Time = this.shadowRoot.getElementById('car1-time');
-    if (car1El) car1El.classList.toggle('away', !car1Present);
-    if (car1Dot) car1Dot.classList.toggle('home', car1Present);
-    if (car1Status) {
-      car1Status.textContent = car1Present ? 'Home' : 'Away';
-      car1Status.classList.toggle('home', car1Present);
-    }
-    if (car1Time) {
-      const car1LastChanged = this._getCarLastChanged(this._config.car1_presence_entity);
-      car1Time.textContent = car1LastChanged ?
-        `${this._formatTime(car1LastChanged)} • ${this._formatDuration(car1LastChanged)}` : '';
-    }
+    // Update cars
+    for (const car of this._getCars()) {
+      const present = this._isCarPresent(car.presenceEntity);
+      const carEl = this.shadowRoot.getElementById(`car-${car.index}`);
+      const dot = this.shadowRoot.getElementById(`car${car.index}-dot`);
+      const status = this.shadowRoot.getElementById(`car${car.index}-status`);
+      const time = this.shadowRoot.getElementById(`car${car.index}-time`);
 
-    // Update car 2
-    const car2El = this.shadowRoot.getElementById('car-jackie');
-    const car2Dot = this.shadowRoot.getElementById('car2-dot');
-    const car2Status = this.shadowRoot.getElementById('car2-status');
-    const car2Time = this.shadowRoot.getElementById('car2-time');
-    if (car2El) car2El.classList.toggle('away', !car2Present);
-    if (car2Dot) car2Dot.classList.toggle('home', car2Present);
-    if (car2Status) {
-      car2Status.textContent = car2Present ? 'Home' : 'Away';
-      car2Status.classList.toggle('home', car2Present);
-    }
-    if (car2Time) {
-      const car2LastChanged = this._getCarLastChanged(this._config.car2_presence_entity);
-      car2Time.textContent = car2LastChanged ?
-        `${this._formatTime(car2LastChanged)} • ${this._formatDuration(car2LastChanged)}` : '';
+      if (carEl) carEl.classList.toggle('away', !present);
+      if (dot) dot.classList.toggle('home', present);
+      if (status) {
+        status.textContent = present ? 'Home' : 'Away';
+        status.classList.toggle('home', present);
+      }
+      if (time) {
+        const lastChanged = this._getCarLastChanged(car.presenceEntity);
+        time.textContent = lastChanged
+          ? `${this._formatTime(lastChanged)} \u2022 ${this._formatDuration(lastChanged)}`
+          : '';
+      }
     }
 
     // Update light button and scene brightness (only when light entity is configured)
@@ -684,20 +628,6 @@ class GarageCard extends HTMLElement {
       if (garageScene) garageScene.classList.toggle('lit', lightOn);
       if (lightBtn) lightBtn.classList.toggle('on', lightOn);
       if (lightIcon) lightIcon.setAttribute('icon', lightOn ? 'mdi:lightbulb' : 'mdi:lightbulb-outline');
-    }
-
-    // Update countdown
-    const countdownState = this._getCountdownState();
-    const countdownBadge = this.shadowRoot.getElementById('countdown-badge');
-    const countdownValue = this.shadowRoot.getElementById('countdown-value');
-    if (countdownBadge && countdownValue) {
-      // Check if it's an active countdown (MM:SS format or "Closing Soon")
-      const isActiveCountdown = countdownState && (
-        /^\d{2}:\d{2}$/.test(countdownState) ||
-        countdownState === 'Closing Soon'
-      );
-      countdownBadge.classList.toggle('active', isActiveCountdown);
-      countdownValue.textContent = countdownState || '--';
     }
 
     // Update keep open toggle
@@ -711,32 +641,14 @@ class GarageCard extends HTMLElement {
   _updateTimers() {
     if (!this._rendered || !this._hass) return;
 
-    // Update countdown display
-    const countdownState = this._getCountdownState();
-    const countdownBadge = this.shadowRoot.getElementById('countdown-badge');
-    const countdownValue = this.shadowRoot.getElementById('countdown-value');
-    if (countdownBadge && countdownValue) {
-      const isActiveCountdown = countdownState && (
-        /^\d{2}:\d{2}$/.test(countdownState) ||
-        countdownState === 'Closing Soon'
-      );
-      countdownBadge.classList.toggle('active', isActiveCountdown);
-      countdownValue.textContent = countdownState || '--';
-    }
-
-    // Update car duration displays
-    const car1Time = this.shadowRoot.getElementById('car1-time');
-    if (car1Time) {
-      const car1LastChanged = this._getCarLastChanged(this._config.car1_presence_entity);
-      car1Time.textContent = car1LastChanged ?
-        `${this._formatTime(car1LastChanged)} • ${this._formatDuration(car1LastChanged)}` : '';
-    }
-
-    const car2Time = this.shadowRoot.getElementById('car2-time');
-    if (car2Time) {
-      const car2LastChanged = this._getCarLastChanged(this._config.car2_presence_entity);
-      car2Time.textContent = car2LastChanged ?
-        `${this._formatTime(car2LastChanged)} • ${this._formatDuration(car2LastChanged)}` : '';
+    for (const car of this._getCars()) {
+      const time = this.shadowRoot.getElementById(`car${car.index}-time`);
+      if (time) {
+        const lastChanged = this._getCarLastChanged(car.presenceEntity);
+        time.textContent = lastChanged
+          ? `${this._formatTime(lastChanged)} \u2022 ${this._formatDuration(lastChanged)}`
+          : '';
+      }
     }
   }
 }
@@ -753,7 +665,7 @@ window.customCards.push({
   preview: true
 });
 
-console.info('%c GARAGE-CARD %c v1.2.0 ',
+console.info('%c GARAGE-CARD %c v1.3.0 ',
   'color: white; background: #4A90D9; font-weight: bold;',
   'color: #4A90D9; background: white; font-weight: bold;'
 );
@@ -784,10 +696,10 @@ class GarageCardEditor extends LitElement {
     const labels = {
       name: 'Card Name',
       door_entity: 'Garage Door Entity',
-      car1_presence_entity: 'Car 1 Presence Sensor',
-      car2_presence_entity: 'Car 2 Presence Sensor',
+      car1_presence_entity: 'Car 1 Presence Sensor (optional)',
+      car2_presence_entity: 'Car 2 Presence Sensor (optional)',
+      car3_presence_entity: 'Car 3 Presence Sensor (optional)',
       light_entity: 'Garage Light Entity (optional)',
-      countdown_entity: 'Auto-Close Countdown Sensor (optional)',
       keep_open_entity: 'Keep Door Open Toggle (optional)'
     };
     return labels[schema.name] || schema.name;
@@ -799,8 +711,8 @@ class GarageCardEditor extends LitElement {
       { name: 'door_entity', selector: { entity: { domain: 'cover' } } },
       { name: 'car1_presence_entity', selector: { entity: { domain: ['binary_sensor', 'input_boolean'] } } },
       { name: 'car2_presence_entity', selector: { entity: { domain: ['binary_sensor', 'input_boolean'] } } },
+      { name: 'car3_presence_entity', selector: { entity: { domain: ['binary_sensor', 'input_boolean'] } } },
       { name: 'light_entity', selector: { entity: { domain: 'light' } } },
-      { name: 'countdown_entity', selector: { entity: { domain: 'sensor' } } },
       { name: 'keep_open_entity', selector: { entity: { domain: 'input_boolean' } } }
     ];
   }

@@ -2,18 +2,17 @@
 
 # Garage Card
 
-A custom Home Assistant Lovelace card that provides a top-down visual representation of your garage. See your garage door state, car presence, light control, and auto-close countdown all in one card.
+A custom Home Assistant Lovelace card that provides a top-down visual representation of your garage. See your garage door state, car presence, light control, and more — all in one card.
 
 ![Garage Card Preview](https://raw.githubusercontent.com/KadenThomp36/garage-card/main/images/preview.png)
 
 ## Features
 
-- **Garage door visualization** - See door open/closed/moving state with animated overlay
-- **Car presence tracking** - Visual indicators for up to two cars with home/away status and duration
-- **Light control** - Toggle your garage light directly from the card with brightness effect
-- **Auto-close countdown** - Display a countdown timer for automatic door closing
-- **Keep open toggle** - Override auto-close with a keep-open switch
-- **Visual editor** - Full GUI configuration in the HA dashboard editor
+- **Garage door visualization** — See door open/closed/moving state with animated overlay
+- **Car presence tracking** — Visual indicators for up to 3 cars with home/away status and duration
+- **Light control** — Optional garage light toggle with brightness dimming effect
+- **Keep open toggle** — Override auto-close with a keep-open switch
+- **Visual editor** — Full GUI configuration in the HA dashboard editor
 
 ## Installation
 
@@ -32,24 +31,53 @@ A custom Home Assistant Lovelace card that provides a top-down visual representa
    - URL: `/local/garage-card.js`
    - Type: JavaScript Module
 
-### Assets Setup
+### Assets
 
-The card uses custom images for the garage visualization. Copy the `assets/` folder to your `config/www/garage-card/` directory so the images are accessible at `/local/garage-card/assets/`.
+The card ships with default assets in the `assets/` folder. After installing, copy the `assets/` folder to `config/www/garage-card/` so the images are accessible at `/local/garage-card/assets/`.
 
-The card expects these files in the assets folder:
+The default assets include images for 2 cars. If you configure a 3rd car, you'll need to create a `car-3.png` asset (see [Creating Custom Assets](#creating-custom-assets) below).
 
 | File | Size | Format | Description |
 |------|------|--------|-------------|
 | `garage-base.png` | 800x700px | PNG, transparent background | Top-down view of the garage floor/walls (always visible) |
-| `garage-door-closed.png` | 800x700px | PNG, transparent background | The garage door overlay (fades out when door opens) |
-| `car-kade.png` | 800x700px | PNG, transparent background | Car 1 image positioned in its parking spot (fades when away) |
-| `car-jackie.png` | 800x700px | PNG, transparent background | Car 2 image positioned in its parking spot (fades when away) |
+| `garage-door-closed.png` | 800x700px | PNG, transparent background | Garage door overlay (fades out when door opens) |
+| `car-1.png` | 800x700px | PNG, transparent background | Car 1 image positioned in its parking spot |
+| `car-2.png` | 800x700px | PNG, transparent background | Car 2 image positioned in its parking spot |
+| `car-3.png` | 800x700px | PNG, transparent background | Car 3 image — only needed if you configure a 3rd car |
 
 All images must be the same dimensions so they layer correctly. The card stacks them in order: base → cars → door.
 
+## Configuration
+
+Add the card to your dashboard and configure it through the visual editor, or use YAML:
+
+```yaml
+type: custom:garage-card
+name: Garage
+door_entity: cover.garage_door
+car1_presence_entity: binary_sensor.car1_present
+car2_presence_entity: binary_sensor.car2_present
+light_entity: light.garage_light
+keep_open_entity: input_boolean.keep_garage_door_open
+```
+
+### Options
+
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `name` | string | No | `Garage` | Card title |
+| `door_entity` | string | Yes | — | Garage door cover entity |
+| `car1_presence_entity` | string | No | — | Binary sensor for car 1 presence |
+| `car2_presence_entity` | string | No | — | Binary sensor for car 2 presence |
+| `car3_presence_entity` | string | No | — | Binary sensor for car 3 presence |
+| `light_entity` | string | No | — | Garage light entity (enables light button and dimming effect) |
+| `keep_open_entity` | string | No | — | Keep door open input_boolean toggle |
+
+Only configured cars are rendered. If you set `car1_presence_entity` and `car2_presence_entity` but leave `car3_presence_entity` empty, the card shows 2 cars. Each car slot maps to an asset image: car 1 → `car-1.png`, car 2 → `car-2.png`, car 3 → `car-3.png`.
+
 ## Creating Custom Assets
 
-You can generate your own garage and car images using an AI image generator like ChatGPT/DALL-E. For the best results, provide your own reference photos (a picture of your actual garage, your cars, etc.) so the AI can match them.
+Want to customize the look? You can generate your own garage and car images using an AI image generator like ChatGPT/DALL-E. For the best results, provide your own reference photos (a picture of your actual garage, your cars, etc.) so the AI can match them.
 
 ### Garage Base
 
@@ -82,37 +110,11 @@ Tips:
 - Upload a real photo of your car alongside the garage image so the AI gets the make/model/color right.
 - Each car image should be positioned where it would sit in its parking spot.
 - Generate one car per image — the card layers them independently.
+- Name your files `car-1.png`, `car-2.png`, `car-3.png` to match the car slots in the config. Only create images for the cars you've configured.
 
 ### Replace the Files
 
-Drop your new images into the `assets/` folder using the same filenames (`garage-base.png`, `garage-door-closed.png`, `car-kade.png`, `car-jackie.png`), and the card will use them automatically.
-
-## Configuration
-
-Add the card to your dashboard and configure it through the visual editor, or use YAML:
-
-```yaml
-type: custom:garage-card
-name: Garage
-door_entity: cover.garage_door
-car1_presence_entity: binary_sensor.car1_present
-car2_presence_entity: binary_sensor.car2_present
-light_entity: light.garage_light
-countdown_entity: sensor.garage_door_auto_close_countdown
-keep_open_entity: input_boolean.keep_garage_door_open
-```
-
-### Options
-
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `name` | string | No | `Garage` | Card title |
-| `door_entity` | string | Yes | - | Garage door cover entity |
-| `car1_presence_entity` | string | No | - | Binary sensor for car 1 presence |
-| `car2_presence_entity` | string | No | - | Binary sensor for car 2 presence |
-| `light_entity` | string | No | - | Garage light entity |
-| `countdown_entity` | string | No | - | Auto-close countdown sensor |
-| `keep_open_entity` | string | No | - | Keep door open input_boolean toggle |
+Drop your new images into the `assets/` folder using the same filenames (`garage-base.png`, `garage-door-closed.png`, `car-1.png`, `car-2.png`, `car-3.png`), and the card will use them automatically.
 
 ## Star History
 
