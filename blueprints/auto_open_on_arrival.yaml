@@ -46,7 +46,7 @@ blueprint:
         The phone's activity sensor (e.g., sensor.my_iphone_activity) to confirm
         the person is driving. Must report "Automotive" when in a vehicle.
         Leave empty to open the door on any arrival regardless of activity.
-      default: {}
+      default: ""
       selector:
         entity:
           filter:

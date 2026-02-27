@@ -29,7 +29,7 @@ blueprint:
         A binary sensor for garage occupancy (e.g., person detection from a camera).
         The door closes after the inactivity timeout when this turns off.
         Leave empty to disable inactivity-based closing.
-      default: {}
+      default: ""
       selector:
         entity:
           filter:
@@ -50,7 +50,7 @@ blueprint:
       description: >-
         Time of day to force-close the door regardless of occupancy (e.g., midnight).
         Leave empty to disable.
-      default: {}
+      default: ""
       selector:
         time: {}
     keep_open_helper:
@@ -58,7 +58,7 @@ blueprint:
       description: >-
         An input_boolean that prevents auto-close when turned on.
         Leave empty to disable this check.
-      default: {}
+      default: ""
       selector:
         entity:
           filter:
@@ -72,7 +72,7 @@ blueprint:
     notify_device:
       name: Notification Device (optional)
       description: The mobile device to notify.
-      default: {}
+      default: ""
       selector:
         device:
           filter:

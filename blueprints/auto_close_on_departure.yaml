@@ -53,7 +53,7 @@ blueprint:
       description: >-
         An input_boolean that prevents auto-close when turned on.
         Leave empty to disable this check.
-      default: {}
+      default: ""
       selector:
         entity:
           filter:
@@ -67,7 +67,7 @@ blueprint:
     notify_device:
       name: Notification Device (optional)
       description: The mobile device to notify. Only used if "Send Notification" is enabled.
-      default: {}
+      default: ""
       selector:
         device:
           filter:
