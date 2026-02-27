@@ -4,7 +4,13 @@
 
 A custom Home Assistant Lovelace card that provides a top-down visual representation of your garage. See your garage door state, car presence, light control, and more — all in one card.
 
-![Garage Card Preview](https://raw.githubusercontent.com/KadenThomp36/garage-card/main/images/preview.png)
+| Both Cars Home, Light Off | Both Cars Home, Light On |
+|:---:|:---:|
+| ![Both Cars, Light Off](https://raw.githubusercontent.com/KadenThomp36/garage-card/main/images/both-cars-door-closed-light-off.jpeg) | ![Both Cars, Light On](https://raw.githubusercontent.com/KadenThomp36/garage-card/main/images/both-cars-door-closed-light-on.jpeg) |
+
+| One Car Home, Door Closed | One Car Home, Door Open |
+|:---:|:---:|
+| ![One Car, Door Closed](https://raw.githubusercontent.com/KadenThomp36/garage-card/main/images/car-present-door-closed-light-on.jpeg) | ![One Car, Door Open](https://raw.githubusercontent.com/KadenThomp36/garage-card/main/images/car-present-door-open-light-on.jpeg) |
 
 ## Features
 
