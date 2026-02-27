@@ -71,7 +71,7 @@ keep_open_entity: input_boolean.keep_garage_door_open
 | `car2_presence_entity` | string | No | — | Binary sensor for car 2 presence |
 | `car3_presence_entity` | string | No | — | Binary sensor for car 3 presence |
 | `light_entity` | string | No | — | Garage light entity (enables light button and dimming effect) |
-| `keep_open_entity` | string | No | — | Keep door open input_boolean toggle |
+| `keep_open_entity` | string | No | — | An `input_boolean` helper you create and use in your own automations (e.g., to prevent auto-close). The card provides a toggle for it — the logic is up to you. |
 
 Only configured cars are rendered. If you set `car1_presence_entity` and `car2_presence_entity` but leave `car3_presence_entity` empty, the card shows 2 cars. Each car slot maps to an asset image: car 1 → `car-1.png`, car 2 → `car-2.png`, car 3 → `car-3.png`.
 
