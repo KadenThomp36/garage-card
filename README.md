@@ -122,6 +122,28 @@ Tips:
 
 Drop your new images into the `assets/` folder using the same filenames (`garage-base.png`, `garage-door-closed.png`, `car-1.png`, `car-2.png`, `car-3.png`), and the card will use them automatically.
 
+## Companion Blueprints
+
+These automation blueprints pair well with the Garage Card. Click the badge to import directly into your Home Assistant instance.
+
+### Auto-Close on Departure
+
+Closes the garage door when a car leaves or when nobody is home. Sends an optional mobile notification with the reason. Respects the "keep open" helper toggle.
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fgarage-card%2Fblob%2Fmain%2Fblueprints%2Fauto_close_on_departure.yaml)
+
+### Auto-Close if Left Open
+
+Closes the garage door after a period of no occupancy or at a scheduled time (e.g., midnight safety close). Configurable inactivity timeout and optional notification.
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fgarage-card%2Fblob%2Fmain%2Fblueprints%2Fauto_close_left_open.yaml)
+
+### Auto-Open on Arrival
+
+Opens the garage door when a person enters a zone near home while driving. Uses your phone's activity sensor to avoid false triggers from walking or biking.
+
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fgarage-card%2Fblob%2Fmain%2Fblueprints%2Fauto_open_on_arrival.yaml)
+
 ## Other Cards
 
 If you like this card, check out my other Home Assistant cards:

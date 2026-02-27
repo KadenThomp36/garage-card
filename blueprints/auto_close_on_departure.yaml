@@ -1,0 +1,130 @@
+blueprint:
+  name: "Garage: Auto-Close on Departure"
+  description: >-
+    Automatically close the garage door when a car leaves or when nobody is home.
+    Optionally sends a mobile notification with the reason. Respects a "keep open"
+    helper toggle so you can override the auto-close when needed.
+  domain: automation
+  author: KadenThomp36
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    garage_door:
+      name: Garage Door
+      description: The garage door cover entity to control.
+      selector:
+        entity:
+          filter:
+            - domain: cover
+    car_presence_sensors:
+      name: Car Presence Sensors
+      description: >-
+        One or more binary sensors that track car presence in the garage.
+        The door will close when any of these turn off (car departs).
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+          multiple: true
+    departure_delay:
+      name: Departure Delay
+      description: How long to wait after a car is detected as gone before closing the door.
+      default: 5
+      selector:
+        number:
+          min: 0
+          max: 300
+          unit_of_measurement: seconds
+    close_when_nobody_home:
+      name: Close When Nobody Home
+      description: Also close the door when the home zone reaches 0 occupants.
+      default: true
+      selector:
+        boolean: {}
+    keep_open_helper:
+      name: Keep Open Helper (optional)
+      description: >-
+        An input_boolean that prevents auto-close when turned on.
+        Leave empty to disable this check.
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+    send_notification:
+      name: Send Notification
+      description: Send a mobile notification when the door auto-closes.
+      default: true
+      selector:
+        boolean: {}
+    notify_device:
+      name: Notification Device (optional)
+      description: The mobile device to notify. Only used if "Send Notification" is enabled.
+      default: {}
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+
+triggers:
+  - trigger: state
+    entity_id: !input car_presence_sensors
+    to: "off"
+    for:
+      seconds: !input departure_delay
+    id: car_departed
+  - trigger: state
+    entity_id: zone.home
+    to: "0"
+    id: nobody_home
+
+conditions:
+  - condition: state
+    entity_id: !input garage_door
+    state: open
+
+actions:
+  - variables:
+      keep_open: !input keep_open_helper
+      should_notify: !input send_notification
+      close_nobody_home: !input close_when_nobody_home
+  - condition: template
+    value_template: >-
+      {{ keep_open == none or keep_open == '' or states(keep_open) == 'off' }}
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: nobody_home
+          - condition: template
+            value_template: "{{ close_nobody_home }}"
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input garage_door
+          - if:
+              - condition: template
+                value_template: "{{ should_notify }}"
+            then:
+              - action: notify.mobile_app_{{ device_attr(device_id(!input notify_device), 'name') | slugify }}
+                data:
+                  title: Garage Auto-Closed
+                  message: >-
+                    Garage door closed at {{ now().strftime('%I:%M %p') }} — nobody home
+      - conditions:
+          - condition: trigger
+            id: car_departed
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input garage_door
+          - if:
+              - condition: template
+                value_template: "{{ should_notify }}"
+            then:
+              - action: notify.mobile_app_{{ device_attr(device_id(!input notify_device), 'name') | slugify }}
+                data:
+                  title: Garage Auto-Closed
+                  message: >-
+                    Garage door closed at {{ now().strftime('%I:%M %p') }} — car departed
+
+mode: single

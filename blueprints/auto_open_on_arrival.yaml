@@ -1,0 +1,67 @@
+blueprint:
+  name: "Garage: Auto-Open on Arrival"
+  description: >-
+    Automatically open the garage door when a person arrives near home while
+    driving. Uses a zone trigger (e.g., a "Neighborhood" zone) and the phone's
+    activity sensor to confirm the person is in a vehicle — preventing the door
+    from opening when walking or biking nearby.
+  domain: automation
+  author: KadenThomp36
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    garage_door:
+      name: Garage Door
+      description: The garage door cover entity to open.
+      selector:
+        entity:
+          filter:
+            - domain: cover
+    person_entity:
+      name: Person
+      description: The person entity to track.
+      selector:
+        entity:
+          filter:
+            - domain: person
+    arrival_zone:
+      name: Arrival Zone
+      description: >-
+        The zone that triggers the door to open when the person enters it.
+        Create a zone around your neighborhood (e.g., 500m radius) so the door
+        opens before you reach the driveway.
+      selector:
+        entity:
+          filter:
+            - domain: zone
+    activity_sensor:
+      name: Activity Sensor (optional)
+      description: >-
+        The phone's activity sensor (e.g., sensor.my_iphone_activity) to confirm
+        the person is driving. Must report "Automotive" when in a vehicle.
+        Leave empty to open the door on any arrival regardless of activity.
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+
+triggers:
+  - trigger: zone
+    entity_id: !input person_entity
+    zone: !input arrival_zone
+    event: enter
+
+conditions: []
+
+actions:
+  - variables:
+      activity: !input activity_sensor
+  - condition: template
+    value_template: >-
+      {{ activity == none or activity == '' or states(activity) == 'Automotive' }}
+  - action: cover.open_cover
+    target:
+      entity_id: !input garage_door
+
+mode: single

@@ -1,0 +1,131 @@
+blueprint:
+  name: "Garage: Auto-Close if Left Open"
+  description: >-
+    Close the garage door if it's been left open — either after a period of no
+    occupancy or at a specific time (e.g., midnight safety close). Sends a mobile
+    notification before or after closing. Respects a "keep open" helper toggle.
+  domain: automation
+  author: KadenThomp36
+  homeassistant:
+    min_version: "2024.6.0"
+  input:
+    garage_door:
+      name: Garage Door
+      description: The garage door cover entity to control.
+      selector:
+        entity:
+          filter:
+            - domain: cover
+    occupancy_sensor:
+      name: Occupancy Sensor (optional)
+      description: >-
+        A binary sensor for garage occupancy (e.g., person detection from a camera).
+        The door closes after the inactivity timeout when this turns off.
+        Leave empty to disable inactivity-based closing.
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+    inactivity_minutes:
+      name: Inactivity Timeout
+      description: >-
+        Minutes of no occupancy before the door auto-closes.
+        Only used if an occupancy sensor is configured.
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: minutes
+    safety_close_time:
+      name: Safety Close Time (optional)
+      description: >-
+        Time of day to force-close the door regardless of occupancy (e.g., midnight).
+        Leave empty to disable.
+      default: {}
+      selector:
+        time: {}
+    keep_open_helper:
+      name: Keep Open Helper (optional)
+      description: >-
+        An input_boolean that prevents auto-close when turned on.
+        Leave empty to disable this check.
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+    send_notification:
+      name: Send Notification
+      description: Send a mobile notification when the door auto-closes.
+      default: true
+      selector:
+        boolean: {}
+    notify_device:
+      name: Notification Device (optional)
+      description: The mobile device to notify.
+      default: {}
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+
+triggers:
+  - trigger: state
+    entity_id: !input occupancy_sensor
+    to: "off"
+    for:
+      minutes: !input inactivity_minutes
+    id: inactivity
+  - trigger: time
+    at: !input safety_close_time
+    id: safety_close
+
+conditions:
+  - condition: state
+    entity_id: !input garage_door
+    state: open
+
+actions:
+  - variables:
+      keep_open: !input keep_open_helper
+      should_notify: !input send_notification
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: inactivity
+          - condition: template
+            value_template: >-
+              {{ keep_open == none or keep_open == '' or states(keep_open) == 'off' }}
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input garage_door
+          - if:
+              - condition: template
+                value_template: "{{ should_notify }}"
+            then:
+              - action: notify.mobile_app_{{ device_attr(device_id(!input notify_device), 'name') | slugify }}
+                data:
+                  title: Garage Auto-Closed
+                  message: >-
+                    Garage door closed at {{ now().strftime('%I:%M %p') }} — no activity detected
+      - conditions:
+          - condition: trigger
+            id: safety_close
+        sequence:
+          - action: cover.close_cover
+            target:
+              entity_id: !input garage_door
+          - if:
+              - condition: template
+                value_template: "{{ should_notify }}"
+            then:
+              - action: notify.mobile_app_{{ device_attr(device_id(!input notify_device), 'name') | slugify }}
+                data:
+                  title: Garage Auto-Closed
+                  message: >-
+                    Garage door closed at {{ now().strftime('%I:%M %p') }} — scheduled safety close
+
+mode: restart
