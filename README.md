@@ -122,6 +122,12 @@ Tips:
 
 Drop your new images into the `assets/` folder using the same filenames (`garage-base.png`, `garage-door-closed.png`, `car-1.png`, `car-2.png`, `car-3.png`), and the card will use them automatically.
 
+## Other Cards
+
+If you like this card, check out my other Home Assistant cards:
+
+- [Air Quality Card](https://github.com/KadenThomp36/air-quality-card) — Monitor indoor air quality sensors with recommendations and health indicators
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=KadenThomp36/garage-card&type=Date)](https://star-history.com/#KadenThomp36/garage-card&Date)
