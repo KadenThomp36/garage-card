@@ -49,33 +49,43 @@ All images must be the same dimensions so they layer correctly. The card stacks 
 
 ## Creating Custom Assets
 
-You can generate your own garage and car images using an AI image generator like ChatGPT/DALL-E. Here's how:
+You can generate your own garage and car images using an AI image generator like ChatGPT/DALL-E. For the best results, provide your own reference photos (a picture of your actual garage, your cars, etc.) so the AI can match them.
 
-### 1. Generate the garage base
+### Garage Base
 
-Use a prompt like this:
+Generate the garage floor plan with a prompt like:
 
 > Create a top-down bird's eye view of a 2-car garage interior floor plan. Style: soft, friendly illustration with clean lines and soft cel-shading. View: directly from above, looking straight down. Show: rectangular garage floor with two parking spots (subtle outlines or different floor shading for each spot), back wall with shelving/storage, front of the garage shows the door opening with the door shut, side walls visible as thick borders. Colors: warm gray concrete floor, soft white/cream walls, subtle shadows. Size: 800x700 pixels, transparent PNG background outside the walls.
 
-You may need to ask it to redo the transparent background — specify that everything outside the garage walls should be PNG transparent.
+Tips:
+- You may need to ask the AI to redo the transparent background — be explicit that everything outside the garage walls should be PNG transparent.
+- If you have a photo of your garage, upload it as a reference for layout and proportions.
 
-### 2. Create the garage door overlay
+### Garage Door Overlay
 
 The garage door overlay is what makes the open/closed animation work. The card layers `garage-door-closed.png` on top of the base and fades it out when the door opens.
 
-To create this, take your generated garage base image and **manually crop out just the garage door portion** using a photo editor (Photoshop, GIMP, Pixelmator, etc.). Save it as a separate PNG with transparent background everywhere except the door itself. Make sure it's the same dimensions as the base image so it lines up perfectly as an overlay.
+This part **must be done manually** in a photo editor (Photoshop, GIMP, Pixelmator, etc.):
 
-### 3. Generate car images
+1. Open your generated garage base image
+2. Select and crop out just the garage door portion
+3. Save it as a separate PNG — transparent everywhere except the door itself
+4. Keep the same dimensions (800x700px) so it lines up as a perfect overlay
 
-For each car, use a prompt like:
+### Car Images
 
-> Matching the same art style, create a top-down bird's eye view of [your car make/model/color]. The car should be completely trimmed out with a transparent PNG background.
+Generate each car separately. Upload your garage base image as a style reference so the AI matches the look:
 
-Upload your garage base image for style reference when prompting. The AI will match the illustration style.
+> Using the same art style as the attached garage image, create a top-down bird's eye view of a [year] [make] [model] in [color]. The car should be completely trimmed out with a transparent PNG background. Size: 800x700 pixels.
 
-### 4. Replace the files
+Tips:
+- Upload a real photo of your car alongside the garage image so the AI gets the make/model/color right.
+- Each car image should be positioned where it would sit in its parking spot.
+- Generate one car per image — the card layers them independently.
 
-Drop your new images into the `assets/` folder using the same filenames, and the card will use them automatically.
+### Replace the Files
+
+Drop your new images into the `assets/` folder using the same filenames (`garage-base.png`, `garage-door-closed.png`, `car-kade.png`, `car-jackie.png`), and the card will use them automatically.
 
 ## Configuration
 

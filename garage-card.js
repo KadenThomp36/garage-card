@@ -193,13 +193,25 @@ class GarageCard extends HTMLElement {
           width: 100%;
           aspect-ratio: 1 / 1;
           margin: 0 auto;
-          cursor: pointer;
+        }
+
+        .garage-scene.has-light {
           filter: brightness(0.6);
           transition: filter 0.5s ease;
         }
 
-        .garage-scene.lit {
+        .garage-scene.has-light.lit {
           filter: brightness(1);
+        }
+
+        .door-touch-target {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 33.33%;
+          z-index: 5;
+          cursor: pointer;
         }
 
         .layer {
@@ -506,7 +518,8 @@ class GarageCard extends HTMLElement {
             <span class="header-title">${this._config.name}</span>
           </div>
 
-          <div class="garage-scene" id="garage-scene">
+          <div class="garage-scene ${this._config.light_entity ? 'has-light' : ''}" id="garage-scene">
+            <div class="door-touch-target" id="door-touch-target"></div>
             <div class="layer garage-base">
               <img src="${assetsPath}/garage-base.png" alt="Garage">
             </div>
@@ -569,7 +582,7 @@ class GarageCard extends HTMLElement {
     `;
 
     // Attach event listeners once
-    this.shadowRoot.getElementById('garage-scene').addEventListener('click', () => this._toggleDoor());
+    this.shadowRoot.getElementById('door-touch-target').addEventListener('click', () => this._toggleDoor());
     this.shadowRoot.getElementById('door-toggle').addEventListener('click', (e) => {
       e.stopPropagation();
       this._toggleDoor();
@@ -663,13 +676,15 @@ class GarageCard extends HTMLElement {
         `${this._formatTime(car2LastChanged)} • ${this._formatDuration(car2LastChanged)}` : '';
     }
 
-    // Update light button and scene brightness
-    const garageScene = this.shadowRoot.getElementById('garage-scene');
-    const lightBtn = this.shadowRoot.getElementById('light-toggle');
-    const lightIcon = this.shadowRoot.getElementById('light-icon');
-    if (garageScene) garageScene.classList.toggle('lit', lightOn);
-    if (lightBtn) lightBtn.classList.toggle('on', lightOn);
-    if (lightIcon) lightIcon.setAttribute('icon', lightOn ? 'mdi:lightbulb' : 'mdi:lightbulb-outline');
+    // Update light button and scene brightness (only when light entity is configured)
+    if (this._config.light_entity) {
+      const garageScene = this.shadowRoot.getElementById('garage-scene');
+      const lightBtn = this.shadowRoot.getElementById('light-toggle');
+      const lightIcon = this.shadowRoot.getElementById('light-icon');
+      if (garageScene) garageScene.classList.toggle('lit', lightOn);
+      if (lightBtn) lightBtn.classList.toggle('on', lightOn);
+      if (lightIcon) lightIcon.setAttribute('icon', lightOn ? 'mdi:lightbulb' : 'mdi:lightbulb-outline');
+    }
 
     // Update countdown
     const countdownState = this._getCountdownState();
