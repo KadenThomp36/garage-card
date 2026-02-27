@@ -1,0 +1,6 @@
+{
+  "name": "Garage Card",
+  "render_readme": true,
+  "filename": "garage-card.js",
+  "homeassistant": "2024.1.0"
+}
