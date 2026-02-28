@@ -4,6 +4,8 @@ blueprint:
     Close the garage door if it's been left open — either after a period of no
     occupancy or at a specific time (e.g., midnight safety close). Sends a mobile
     notification to one or more devices. Respects a "keep open" helper toggle.
+    Includes a configurable timeout — if the door doesn't close in time, a warning
+    notification is sent.
 
     Designed as a companion to the Garage Card
     (https://github.com/KadenThomp36/garage-card). The card shows your garage
@@ -53,6 +55,17 @@ blueprint:
       default: ""
       selector:
         time: {}
+    close_timeout:
+      name: Close Timeout
+      description: >-
+        How long to wait for the door to finish closing before giving up.
+        If the door doesn't reach "closed" in this time, a warning is sent.
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 10
+          unit_of_measurement: minutes
     keep_open_helper:
       name: Keep Open Helper (optional)
       description: >-
@@ -128,18 +141,26 @@ actions:
               entity_id: !input garage_door
           - variables:
               reason: "Garage door closed — scheduled safety close"
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: !input garage_door
+        to: closed
+    timeout:
+      minutes: !input close_timeout
+    continue_on_timeout: true
   - variables:
       devices: !input notify_devices
       title: !input notification_title
       show_time: !input include_timestamp
+      door_closed: "{{ wait.trigger is not none }}"
       message: >-
-        {{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}
+        {% if door_closed %}{{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to close — check manually{% endif %}
   - repeat:
       for_each: "{{ devices }}"
       sequence:
         - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
           data:
-            title: "{{ title }}"
+            title: "{{ title if door_closed else 'Garage Door Warning' }}"
             message: "{{ message }}"
 
 mode: restart

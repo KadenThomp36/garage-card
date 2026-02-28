@@ -4,7 +4,8 @@ blueprint:
     Automatically open the garage door when a person arrives near home while
     driving. Uses a zone trigger (e.g., a "Neighborhood" zone) and the phone's
     activity sensor to confirm the person is in a vehicle — preventing the door
-    from opening when walking or biking nearby.
+    from opening when walking or biking nearby. Includes a configurable timeout —
+    if the door doesn't open in time, a warning notification is sent.
 
     Designed as a companion to the Garage Card
     (https://github.com/KadenThomp36/garage-card). The card visualizes your
@@ -51,6 +52,40 @@ blueprint:
         entity:
           filter:
             - domain: sensor
+    open_timeout:
+      name: Open Timeout
+      description: >-
+        How long to wait for the door to finish opening before giving up.
+        If the door doesn't reach "open" in this time, a warning is sent.
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 10
+          unit_of_measurement: minutes
+    notify_devices:
+      name: Notification Devices (optional)
+      description: >-
+        Mobile devices to notify when the door auto-opens or fails to open.
+        Select multiple devices if needed. Leave empty to disable notifications.
+      default: []
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: true
+    notification_title:
+      name: Notification Title
+      description: Title shown in the notification.
+      default: "Garage Auto-Opened"
+      selector:
+        text: {}
+    include_timestamp:
+      name: Include Timestamp
+      description: Append the current time to the notification message.
+      default: true
+      selector:
+        boolean: {}
 
 triggers:
   - trigger: zone
@@ -69,5 +104,27 @@ actions:
   - action: cover.open_cover
     target:
       entity_id: !input garage_door
+  - wait_for_trigger:
+      - trigger: state
+        entity_id: !input garage_door
+        to: open
+    timeout:
+      minutes: !input open_timeout
+    continue_on_timeout: true
+  - variables:
+      devices: !input notify_devices
+      title: !input notification_title
+      show_time: !input include_timestamp
+      door_opened: "{{ wait.trigger is not none }}"
+      reason: "Garage door opened — arrival detected"
+      message: >-
+        {% if door_opened %}{{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to open — check manually{% endif %}
+  - repeat:
+      for_each: "{{ devices }}"
+      sequence:
+        - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+          data:
+            title: "{{ title if door_opened else 'Garage Door Warning' }}"
+            message: "{{ message }}"
 
 mode: single
