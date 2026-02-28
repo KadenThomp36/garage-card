@@ -24,10 +24,9 @@ A custom Home Assistant Lovelace card that provides a top-down visual representa
 
 ### HACS (Recommended)
 
-1. Open HACS in your Home Assistant instance
-2. Search for "Garage Card"
-3. Click Install
-4. Restart Home Assistant
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=KadenThomp36&repository=garage-card&category=plugin)
+
+Or manually: open HACS, search for "Garage Card", click Install, and restart Home Assistant.
 
 ### Manual
 
