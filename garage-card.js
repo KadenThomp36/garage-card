@@ -131,7 +131,8 @@ class GarageCard extends HTMLElement {
 
   _toggleKeepOpen() {
     if (!this._config.keep_open_entity) return;
-    this._hass.callService('input_boolean', 'toggle', {
+    const isCurrentlyOn = this._isKeepOpenEnabled();
+    this._hass.callService('input_boolean', isCurrentlyOn ? 'turn_off' : 'turn_on', {
       entity_id: this._config.keep_open_entity
     });
   }
