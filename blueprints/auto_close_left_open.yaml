@@ -3,7 +3,7 @@ blueprint:
   description: >-
     Close the garage door if it's been left open — either after a period of no
     occupancy or at a specific time (e.g., midnight safety close). Sends a mobile
-    notification before or after closing. Respects a "keep open" helper toggle.
+    notification to one or more devices. Respects a "keep open" helper toggle.
 
     Designed as a companion to the Garage Card
     (https://github.com/KadenThomp36/garage-card). The card shows your garage
@@ -63,20 +63,29 @@ blueprint:
         entity:
           filter:
             - domain: input_boolean
-    send_notification:
-      name: Send Notification
-      description: Send a mobile notification when the door auto-closes.
-      default: true
-      selector:
-        boolean: {}
-    notify_device:
-      name: Notification Device (optional)
-      description: The mobile device to notify.
-      default: ""
+    notify_devices:
+      name: Notification Devices (optional)
+      description: >-
+        Mobile devices to notify when the door auto-closes. Select multiple
+        devices if needed. Leave empty to disable notifications.
+      default: []
       selector:
         device:
           filter:
             - integration: mobile_app
+          multiple: true
+    notification_title:
+      name: Notification Title
+      description: Title shown in the notification.
+      default: "Garage Auto-Closed"
+      selector:
+        text: {}
+    include_timestamp:
+      name: Include Timestamp
+      description: Append the current time to the notification message.
+      default: true
+      selector:
+        boolean: {}
 
 triggers:
   - trigger: state
@@ -97,7 +106,6 @@ conditions:
 actions:
   - variables:
       keep_open: !input keep_open_helper
-      should_notify: !input send_notification
   - choose:
       - conditions:
           - condition: trigger
@@ -109,15 +117,8 @@ actions:
           - action: cover.close_cover
             target:
               entity_id: !input garage_door
-          - if:
-              - condition: template
-                value_template: "{{ should_notify }}"
-            then:
-              - action: notify.mobile_app_{{ device_attr(device_id(!input notify_device), 'name') | slugify }}
-                data:
-                  title: Garage Auto-Closed
-                  message: >-
-                    Garage door closed at {{ now().strftime('%I:%M %p') }} — no activity detected
+          - variables:
+              reason: "Garage door closed — no activity detected"
       - conditions:
           - condition: trigger
             id: safety_close
@@ -125,14 +126,20 @@ actions:
           - action: cover.close_cover
             target:
               entity_id: !input garage_door
-          - if:
-              - condition: template
-                value_template: "{{ should_notify }}"
-            then:
-              - action: notify.mobile_app_{{ device_attr(device_id(!input notify_device), 'name') | slugify }}
-                data:
-                  title: Garage Auto-Closed
-                  message: >-
-                    Garage door closed at {{ now().strftime('%I:%M %p') }} — scheduled safety close
+          - variables:
+              reason: "Garage door closed — scheduled safety close"
+  - variables:
+      devices: !input notify_devices
+      title: !input notification_title
+      show_time: !input include_timestamp
+      message: >-
+        {{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}
+  - repeat:
+      for_each: "{{ devices }}"
+      sequence:
+        - action: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+          data:
+            title: "{{ title }}"
+            message: "{{ message }}"
 
 mode: restart
