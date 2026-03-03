@@ -9,6 +9,7 @@ A custom Home Assistant Lovelace card that provides a top-down visual representa
 - [Features](#features)
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Example Setup](#example-setup)
 - [Creating Custom Assets](#creating-custom-assets)
 - [Companion Blueprints](#companion-blueprints)
 - [Other Cards](#other-cards)
@@ -90,6 +91,31 @@ keep_open_entity: input_boolean.keep_garage_door_open
 | `keep_open_entity` | string | No | — | An `input_boolean` helper you create and use in your own automations (e.g., to prevent auto-close). The card provides a toggle for it — the logic is up to you. |
 
 Only configured cars are rendered. If you set `car1_presence_entity` and `car2_presence_entity` but leave `car3_presence_entity` empty, the card shows 2 cars. Each car slot maps to an asset image: car 1 → `car-1.png`, car 2 → `car-2.png`, car 3 → `car-3.png`.
+
+## Example Setup
+
+Here's a real-world example of how presence detection and door control can be wired together.
+
+### Hardware
+
+- **Camera** — [Reolink E1 Pro](https://reolink.com/product/e1-pro/) mounted in the corner of the garage, giving a clear overhead-ish view of both parking spots
+- **Door controller** — [ratgdo](https://paulwieland.github.io/ratgdo/) connected to the garage door opener, which exposes the cover entity as well as the obstruction/trip sensor built into the door
+
+### Presence Detection with Frigate
+
+[Frigate](https://frigate.video/) 0.17+ added support for training state-specific object models. Instead of a simple "car detected" binary, you can train per-car models that report distinct states:
+
+| State | Meaning |
+|-------|---------|
+| `present` | Car is in its parking spot |
+| `not-present` | Parking spot is empty |
+| `dark` | Camera hasn't switched to infrared yet and can't see clearly — ignored in automations |
+
+Train a separate state model for each car so Frigate can distinguish between them and their states independently. This gives you a reliable `binary_sensor` per car to feed into the card's `car1_presence_entity` / `car2_presence_entity` slots.
+
+### Tying It Together
+
+The companion blueprints use these presence sensors alongside the ratgdo door trip sensor to make smart decisions — for example, only auto-closing the door after a car departs *and* the trip sensor confirms the door path is clear. The `dark` state is intentionally ignored so the system doesn't react to temporary visibility gaps during the IR switchover at dusk/dawn.
 
 ## Creating Custom Assets
 
