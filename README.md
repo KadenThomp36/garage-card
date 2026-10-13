@@ -27,10 +27,15 @@ A custom Home Assistant Lovelace card that provides a top-down visual representa
 ## Features
 
 - **Garage door visualization** — See door open/closed/moving state with animated overlay
+- **Two-door garages** — Optional second door entity; each bay's door opens and closes independently
 - **Car presence tracking** — Visual indicators for up to 3 cars with home/away status and duration
 - **Light control** — Optional garage light toggle with brightness dimming effect
 - **Keep open toggle** — Override auto-close with a keep-open switch
+- **Native interactions** — Tap to act, press and hold (or tap a car) for the more-info dialog; optional confirmation before moving a door
 - **Visual editor** — Full GUI configuration in the HA dashboard editor
+- **Sections view ready** — Sizes itself correctly in the sections dashboard layout
+
+Requires Home Assistant 2024.8 or newer.
 
 ## Installation
 
@@ -74,14 +79,43 @@ keep_open_entity: input_boolean.keep_garage_door_open
 |--------|------|----------|---------|-------------|
 | `name` | string | No | `Garage` | Card title |
 | `door_entity` | string | Yes | — | Garage door cover entity |
-| `car1_presence_entity` | string | No | — | Binary sensor for car 1 presence |
-| `car2_presence_entity` | string | No | — | Binary sensor for car 2 presence |
-| `car3_presence_entity` | string | No | — | Binary sensor for car 3 presence |
-| `light_entity` | string | No | — | Garage light entity (enables light button and dimming effect) |
+| `door2_entity` | string | No | — | Second garage door cover entity, for garages with two separate doors (see [Two-Door Garages](#two-door-garages)) |
+| `door_confirmation` | boolean | No | `false` | Ask for confirmation before opening, closing or stopping a door |
+| `car1_presence_entity` | string | No | — | Presence entity for car 1 (`binary_sensor`, `input_boolean`, `device_tracker` or `person`) |
+| `car2_presence_entity` | string | No | — | Presence entity for car 2 |
+| `car3_presence_entity` | string | No | — | Presence entity for car 3 |
+| `light_entity` | string | No | — | Garage light (`light` or `switch`) — enables the light button and dimming effect |
 | `keep_open_entity` | string | No | — | An `input_boolean` helper you create and use in your own automations (e.g., to prevent auto-close). The card provides a toggle for it — the logic is up to you. |
 | `assets_path` | string | No | — | Path to custom image assets (e.g., `/local/garage-card/assets`). When omitted, the card uses its built-in embedded images. Only set this if you want to use your own custom images. |
 
+A car counts as present when its entity is `on` (binary sensor / input boolean) or `home` (device tracker / person).
+
 Only configured cars are rendered. If you set `car1_presence_entity` and `car2_presence_entity` but leave `car3_presence_entity` empty, the card shows 2 cars. Each car slot maps to an asset image: car 1 → `car-1.png`, car 2 → `car-2.png`, car 3 → `car-3.png`. The built-in images include car 1 and car 2 — if you configure a 3rd car, you'll need to provide custom assets via `assets_path`.
+
+### Interactions
+
+| Element | Tap | Press and hold |
+|---------|-----|----------------|
+| Door (top of the image) or door status pill | Toggle the door (stops it while moving, if supported) | More-info dialog |
+| Light button | Toggle the light | More-info dialog |
+| Keep Open pill | Toggle the helper | More-info dialog |
+| Car status | More-info dialog (history) | More-info dialog |
+
+If a door is unavailable, tapping it opens the more-info dialog instead.
+
+### Two-Door Garages
+
+If your garage has two separate doors, each with its own opener, set `door2_entity`:
+
+```yaml
+type: custom:garage-card
+door_entity: cover.garage_door_left
+door2_entity: cover.garage_door_right
+car1_presence_entity: binary_sensor.car1_present
+car2_presence_entity: binary_sensor.car2_present
+```
+
+The door image is split down the middle: `door_entity` controls the left half (car 1's bay) and `door2_entity` the right half (car 2's bay). Each half has its own tap target and status pill.
 
 ## Example Setup
 
@@ -172,15 +206,17 @@ Closes the garage door when a car leaves or when nobody is home. Sends an option
 
 ### Auto-Close if Left Open
 
-Closes the garage door after a period of no occupancy or at a scheduled time (e.g., midnight safety close). Configurable inactivity timeout and optional notification.
+Closes the garage door after a period of no occupancy (whether the garage empties while the door is open, or the door is opened with nobody inside) or at a scheduled time (e.g., midnight safety close). Configurable inactivity timeout and optional notification.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fgarage-card%2Fblob%2Fmain%2Fblueprints%2Fauto_close_left_open.yaml)
 
 ### Auto-Open on Arrival
 
-Opens the garage door when a person enters a zone near home while driving. Uses your phone's activity sensor to avoid false triggers from walking or biking.
+Opens the garage door when a person enters a zone near home while driving. Uses your phone's activity sensor (iOS `Automotive` or Android `in_vehicle`) to avoid false triggers from walking or biking.
 
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FKadenThomp36%2Fgarage-card%2Fblob%2Fmain%2Fblueprints%2Fauto_open_on_arrival.yaml)
+
+> **Updating blueprints:** Home Assistant doesn't update imported blueprints automatically. To get fixes, go to **Settings > Automations & Scenes > Blueprints**, open the blueprint's menu and choose **Re-import blueprint**.
 
 ## Other Cards
 
