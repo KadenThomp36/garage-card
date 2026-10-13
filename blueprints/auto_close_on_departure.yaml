@@ -16,7 +16,7 @@ blueprint:
   author: KadenThomp36
   source_url: https://github.com/KadenThomp36/garage-card/blob/main/blueprints/auto_close_on_departure.yaml
   homeassistant:
-    min_version: "2024.6.0"
+    min_version: "2024.10.0"
   input:
     garage_door:
       name: Garage Door
@@ -98,6 +98,7 @@ blueprint:
 triggers:
   - trigger: state
     entity_id: !input car_presence_sensors
+    from: "on"
     to: "off"
     for:
       seconds: !input departure_delay
@@ -105,45 +106,34 @@ triggers:
   - trigger: state
     entity_id: zone.home
     to: "0"
+    not_from:
+      - unavailable
+      - unknown
     id: nobody_home
+
+variables:
+  door: !input garage_door
+  keep_open: !input keep_open_helper
+  close_nobody_home: !input close_when_nobody_home
 
 conditions:
   - condition: state
     entity_id: !input garage_door
     state: open
+  - condition: template
+    value_template: "{{ not keep_open or is_state(keep_open, 'off') }}"
+  - condition: template
+    value_template: "{{ trigger.id != 'nobody_home' or close_nobody_home }}"
 
 actions:
   - variables:
-      keep_open: !input keep_open_helper
-      close_nobody_home: !input close_when_nobody_home
-  - condition: template
-    value_template: >-
-      {{ keep_open == none or keep_open == '' or states(keep_open) == 'off' }}
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: nobody_home
-          - condition: template
-            value_template: "{{ close_nobody_home }}"
-        sequence:
-          - action: cover.close_cover
-            target:
-              entity_id: !input garage_door
-          - variables:
-              reason: "Garage door closed — nobody home"
-      - conditions:
-          - condition: trigger
-            id: car_departed
-        sequence:
-          - action: cover.close_cover
-            target:
-              entity_id: !input garage_door
-          - variables:
-              reason: "Garage door closed — car departed"
-  - wait_for_trigger:
-      - trigger: state
-        entity_id: !input garage_door
-        to: closed
+      reason: >-
+        {{ 'Garage door closed — nobody home' if trigger.id == 'nobody_home'
+           else 'Garage door closed — car departed' }}
+  - action: cover.close_cover
+    target:
+      entity_id: !input garage_door
+  - wait_template: "{{ is_state(door, 'closed') }}"
     timeout:
       minutes: !input close_timeout
     continue_on_timeout: true
@@ -151,9 +141,9 @@ actions:
       devices: !input notify_devices
       title: !input notification_title
       show_time: !input include_timestamp
-      door_closed: "{{ wait.trigger is not none }}"
+      door_closed: "{{ wait.completed }}"
       message: >-
-        {% if door_closed %}{{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to close — check manually{% endif %}
+        {% if door_closed %}{{ reason }}{% if show_time %} at {{ now().strftime('%-I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to close — check manually{% endif %}
   - repeat:
       for_each: "{{ devices }}"
       sequence:
@@ -163,3 +153,4 @@ actions:
             message: "{{ message }}"
 
 mode: single
+max_exceeded: silent

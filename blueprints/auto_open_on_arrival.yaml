@@ -15,7 +15,7 @@ blueprint:
   author: KadenThomp36
   source_url: https://github.com/KadenThomp36/garage-card/blob/main/blueprints/auto_open_on_arrival.yaml
   homeassistant:
-    min_version: "2024.6.0"
+    min_version: "2024.10.0"
   input:
     garage_door:
       name: Garage Door
@@ -44,8 +44,9 @@ blueprint:
     activity_sensor:
       name: Activity Sensor (optional)
       description: >-
-        The phone's activity sensor (e.g., sensor.my_iphone_activity) to confirm
-        the person is driving. Must report "Automotive" when in a vehicle.
+        The phone's activity sensor to confirm the person is driving
+        (iOS: sensor.<phone>_activity reports "Automotive"; Android:
+        sensor.<phone>_detected_activity reports "in_vehicle").
         Leave empty to open the door on any arrival regardless of activity.
       default: ""
       selector:
@@ -93,21 +94,24 @@ triggers:
     zone: !input arrival_zone
     event: enter
 
-conditions: []
+variables:
+  door: !input garage_door
+  activity: !input activity_sensor
 
-actions:
-  - variables:
-      activity: !input activity_sensor
+conditions:
+  # Don't act (or report a failure) if the door is already open or opening
+  - condition: state
+    entity_id: !input garage_door
+    state: closed
   - condition: template
     value_template: >-
-      {{ activity == none or activity == '' or states(activity) == 'Automotive' }}
+      {{ not activity or states(activity) in ['Automotive', 'in_vehicle'] }}
+
+actions:
   - action: cover.open_cover
     target:
       entity_id: !input garage_door
-  - wait_for_trigger:
-      - trigger: state
-        entity_id: !input garage_door
-        to: open
+  - wait_template: "{{ is_state(door, 'open') }}"
     timeout:
       minutes: !input open_timeout
     continue_on_timeout: true
@@ -115,10 +119,10 @@ actions:
       devices: !input notify_devices
       title: !input notification_title
       show_time: !input include_timestamp
-      door_opened: "{{ wait.trigger is not none }}"
+      door_opened: "{{ wait.completed }}"
       reason: "Garage door opened — arrival detected"
       message: >-
-        {% if door_opened %}{{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to open — check manually{% endif %}
+        {% if door_opened %}{{ reason }}{% if show_time %} at {{ now().strftime('%-I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to open — check manually{% endif %}
   - repeat:
       for_each: "{{ devices }}"
       sequence:
@@ -128,3 +132,4 @@ actions:
             message: "{{ message }}"
 
 mode: single
+max_exceeded: silent

@@ -16,7 +16,7 @@ blueprint:
   author: KadenThomp36
   source_url: https://github.com/KadenThomp36/garage-card/blob/main/blueprints/auto_close_left_open.yaml
   homeassistant:
-    min_version: "2024.6.0"
+    min_version: "2024.10.0"
   input:
     garage_door:
       name: Garage Door
@@ -31,7 +31,7 @@ blueprint:
         A binary sensor for garage occupancy (e.g., person detection from a camera).
         The door closes after the inactivity timeout when this turns off.
         Leave empty to disable inactivity-based closing.
-      default: ""
+      default: []
       selector:
         entity:
           filter:
@@ -100,51 +100,61 @@ blueprint:
       selector:
         boolean: {}
 
+trigger_variables:
+  safety_time: !input safety_close_time
+
 triggers:
+  # Occupancy cleared while the door is open
   - trigger: state
     entity_id: !input occupancy_sensor
     to: "off"
+    not_from:
+      - unavailable
+      - unknown
     for:
       minutes: !input inactivity_minutes
     id: inactivity
-  - trigger: time
-    at: !input safety_close_time
+  # Door opened while nobody was in the garage
+  - trigger: state
+    entity_id: !input garage_door
+    to: open
+    for:
+      minutes: !input inactivity_minutes
+    id: inactivity
+  # Template trigger (not a time trigger) so an empty safety close time is valid
+  - trigger: template
+    value_template: >-
+      {{ safety_time | string | length > 0
+         and now().strftime('%H:%M') == (safety_time | string)[:5] }}
     id: safety_close
+
+variables:
+  door: !input garage_door
+  occupancy: !input occupancy_sensor
+  keep_open: !input keep_open_helper
+  inactivity_minutes: !input inactivity_minutes
 
 conditions:
   - condition: state
     entity_id: !input garage_door
     state: open
+  - condition: template
+    value_template: >-
+      {{ trigger.id == 'safety_close'
+         or (occupancy | length > 0
+             and is_state(occupancy, 'off')
+             and (now() - states[occupancy].last_changed).total_seconds() >= inactivity_minutes * 60 - 5
+             and (not keep_open or is_state(keep_open, 'off'))) }}
 
 actions:
   - variables:
-      keep_open: !input keep_open_helper
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: inactivity
-          - condition: template
-            value_template: >-
-              {{ keep_open == none or keep_open == '' or states(keep_open) == 'off' }}
-        sequence:
-          - action: cover.close_cover
-            target:
-              entity_id: !input garage_door
-          - variables:
-              reason: "Garage door closed — no activity detected"
-      - conditions:
-          - condition: trigger
-            id: safety_close
-        sequence:
-          - action: cover.close_cover
-            target:
-              entity_id: !input garage_door
-          - variables:
-              reason: "Garage door closed — scheduled safety close"
-  - wait_for_trigger:
-      - trigger: state
-        entity_id: !input garage_door
-        to: closed
+      reason: >-
+        {{ 'Garage door closed — scheduled safety close' if trigger.id == 'safety_close'
+           else 'Garage door closed — no activity detected' }}
+  - action: cover.close_cover
+    target:
+      entity_id: !input garage_door
+  - wait_template: "{{ is_state(door, 'closed') }}"
     timeout:
       minutes: !input close_timeout
     continue_on_timeout: true
@@ -152,9 +162,9 @@ actions:
       devices: !input notify_devices
       title: !input notification_title
       show_time: !input include_timestamp
-      door_closed: "{{ wait.trigger is not none }}"
+      door_closed: "{{ wait.completed }}"
       message: >-
-        {% if door_closed %}{{ reason }}{% if show_time %} at {{ now().strftime('%I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to close — check manually{% endif %}
+        {% if door_closed %}{{ reason }}{% if show_time %} at {{ now().strftime('%-I:%M %p') }}{% endif %}{% else %}WARNING: Garage door failed to close — check manually{% endif %}
   - repeat:
       for_each: "{{ devices }}"
       sequence:
@@ -163,4 +173,5 @@ actions:
             title: "{{ title if door_closed else 'Garage Door Warning' }}"
             message: "{{ message }}"
 
-mode: restart
+mode: single
+max_exceeded: silent
