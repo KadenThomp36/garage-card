@@ -86,11 +86,11 @@ keep_open_entity: input_boolean.keep_garage_door_open
 | `car3_presence_entity` | string | No | — | Presence entity for car 3 |
 | `light_entity` | string | No | — | Garage light (`light` or `switch`) — enables the light button and dimming effect |
 | `keep_open_entity` | string | No | — | An `input_boolean` helper you create and use in your own automations (e.g., to prevent auto-close). The card provides a toggle for it — the logic is up to you. |
-| `assets_path` | string | No | — | Path to custom image assets (e.g., `/local/garage-card/assets`). When omitted, the card uses its built-in embedded images. Only set this if you want to use your own custom images. |
+| `assets_path` | string | No | — | URL of a folder with your own images, e.g. `/local/garage-card/assets` for `config/www/garage-card/assets`. Any image missing from the folder uses the built-in one. When omitted, the card uses only its built-in images. See [Using Custom Assets](#using-custom-assets). |
 
 A car counts as present when its entity is `on` (binary sensor / input boolean) or `home` (device tracker / person).
 
-Only configured cars are rendered. If you set `car1_presence_entity` and `car2_presence_entity` but leave `car3_presence_entity` empty, the card shows 2 cars. Each car slot maps to an asset image: car 1 → `car-1.png`, car 2 → `car-2.png`, car 3 → `car-3.png`. The built-in images include car 1 and car 2 — if you configure a 3rd car, you'll need to provide custom assets via `assets_path`.
+Only configured cars are rendered. If you set `car1_presence_entity` and `car2_presence_entity` but leave `car3_presence_entity` empty, the card shows 2 cars. Each car slot maps to an asset image: car 1 → `car-1.png`, car 2 → `car-2.png`, car 3 → `car-3.png`. The built-in images include car 1 and car 2. If you configure a 3rd car, put a `car-3.png` in your `assets_path` folder (the other images can stay built-in).
 
 ### Interactions
 
@@ -183,7 +183,7 @@ Tips:
 
 1. Create a folder in your Home Assistant config, e.g. `config/www/garage-card/assets/`
 2. Place your custom images there using the expected filenames: `garage-base.png`, `garage-door-closed.png`, `car-1.png`, `car-2.png`, `car-3.png`
-3. Set `assets_path` in your card config to point to that folder:
+3. Set `assets_path` in your card config to point to that folder. Files in `config/www/` are served under `/local/`:
 
 ```yaml
 type: custom:garage-card
@@ -192,7 +192,14 @@ door_entity: cover.garage_door
 assets_path: /local/garage-card/assets
 ```
 
-When `assets_path` is set, the card loads images from that path instead of using the built-in embedded defaults.
+You only need the images you want to change. The card tries each file in `assets_path` first and uses the built-in image for any file that's missing or can't be loaded. For example, you can drop in just `car-1.png` and `car-2.png` and keep the built-in garage. Car 3 has no built-in image, so it needs a `car-3.png`.
+
+Troubleshooting:
+
+- **Check the browser console.** The card logs a `garage-card: could not load ...` warning for every custom image it couldn't load, along with the exact URL it tried.
+- **Restart Home Assistant after creating `config/www` for the first time.** HA only serves `/local/` if the folder exists when it starts.
+- **Updated an image but still see the old one?** HA tells browsers to cache `/local/` files for a month. Add a version to the path and bump it whenever you change an image: `assets_path: /local/garage-card/assets?v=2`.
+- A filesystem-style path such as `config/www/garage-card/assets` is accepted and converted to `/local/garage-card/assets`.
 
 ## Companion Blueprints
 
